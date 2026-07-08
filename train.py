@@ -4,7 +4,7 @@ import torch
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
 import argparse
-from module1 import *
+from module4 import *
 from history import History
 import torch.nn as nn
 import numpy as np
