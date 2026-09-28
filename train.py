@@ -4,7 +4,7 @@ import torch
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
 import argparse
-from module4 import *
+from module import *
 from history import History
 import torch.nn as nn
 import numpy as np
@@ -36,8 +36,6 @@ def train_one_epoch(
     total_l1 = 0.0
     total_grad = 0.0
     total_depth = 0.0
-    total_lap = 0.0
-
     total_psnr = 0.0
 
     for lr_img, hr_img in train_loader:
@@ -72,8 +70,6 @@ def train_one_epoch(
 
         total_depth += loss_dict['depth'].mean().item()
 
-        total_lap += loss_dict['lap'].mean().item()
-
         mse = F.mse_loss(
             pred,
             hr_img
@@ -92,7 +88,6 @@ def train_one_epoch(
         'l1': total_l1 / n,
         'grad': total_grad / n,
         'depth': total_depth / n,
-        'lap': total_lap / n,
         'psnr': total_psnr / n
     }
 
@@ -109,7 +104,6 @@ def evaluate(
     total_l1 = 0.0
     total_grad = 0.0
     total_depth = 0.0
-    total_lap = 0.0
     total_psnr = 0.0
 
     for lr_img, hr_img in test_loader:
@@ -132,8 +126,6 @@ def evaluate(
 
         total_depth += loss_dict['depth'].mean().item()
 
-        total_lap += loss_dict['lap'].mean().item()
-
         mse = F.mse_loss(
             pred,
             hr_img
@@ -152,7 +144,6 @@ def evaluate(
         'l1': total_l1 / n,
         'grad': total_grad / n,
         'depth': total_depth / n,
-        'lap': total_lap / n,
         'psnr': total_psnr / n
     }
 
@@ -161,8 +152,6 @@ def main(args):
     start_time = time.time()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    torch.backends.cudnn.benchmark = True
 
     print(device)
     print(torch.cuda.is_available())
@@ -177,15 +166,16 @@ def main(args):
     test_data_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, drop_last=True)
 
     # 实例化模型
-    # m = DASRNet(6, 64).to(device)
+    m = DASRNet(6, 64).to(device)
 
     # 多GPU板卡
-    m = DASRNet(6, 64)
+    # m = DASRNet(6, 64)
+    #
+    # m = torch.nn.DataParallel(m, device_ids=[0, 1])
+    #
+    # m = m.to(device)
 
-    m = torch.nn.DataParallel(m, device_ids=[0, 1])
-
-    m = m.to(device)
-
+    # criterion = nn.L1Loss()
     criterion = TotalLoss().to(device)
 
     info = ''

@@ -5,6 +5,7 @@ from torch.utils.data import DataLoader
 import torch.nn.functional as F
 import argparse
 from CycleGAN import *
+from module import TotalLoss
 from history import History
 import torch.nn as nn
 import numpy as np
@@ -23,6 +24,7 @@ def parse_args():
 
     return parser.parse_args()
 
+
 def train_one_epoch(
         model,
         train_loader,
@@ -33,6 +35,9 @@ def train_one_epoch(
     model.train()
 
     total_loss = 0.0
+    total_l1 = 0.0
+    total_grad = 0.0
+    total_depth = 0.0
     total_psnr = 0.0
 
     for lr_img, hr_img in train_loader:
@@ -44,16 +49,28 @@ def train_one_epoch(
 
         pred = model(lr_img)
 
-        loss = criterion(
+        loss_dict = criterion(
             pred,
             hr_img
         )
+
+        # ==========================
+        # batch loss -> scalar
+        # ==========================
+
+        loss = loss_dict['total'].mean()
 
         loss.backward()
 
         optimizer.step()
 
         total_loss += loss.item()
+
+        total_l1 += loss_dict['l1'].mean().item()
+
+        total_grad += loss_dict['grad'].mean().item()
+
+        total_depth += loss_dict['depth'].mean().item()
 
         mse = F.mse_loss(
             pred,
@@ -70,6 +87,9 @@ def train_one_epoch(
 
     return {
         'loss': total_loss / n,
+        'l1': total_l1 / n,
+        'grad': total_grad / n,
+        'depth': total_depth / n,
         'psnr': total_psnr / n
     }
 
@@ -83,6 +103,9 @@ def evaluate(
     model.eval()
 
     total_loss = 0.0
+    total_l1 = 0.0
+    total_grad = 0.0
+    total_depth = 0.0
     total_psnr = 0.0
 
     for lr_img, hr_img in test_loader:
@@ -92,12 +115,18 @@ def evaluate(
 
         pred = model(lr_img)
 
-        loss = criterion(
+        loss_dict = criterion(
             pred,
             hr_img
         )
 
-        total_loss += loss.item()
+        total_loss += loss_dict['total'].mean().item()
+
+        total_l1 += loss_dict['l1'].mean().item()
+
+        total_grad += loss_dict['grad'].mean().item()
+
+        total_depth += loss_dict['depth'].mean().item()
 
         mse = F.mse_loss(
             pred,
@@ -114,6 +143,9 @@ def evaluate(
 
     return {
         'loss': total_loss / n,
+        'l1': total_l1 / n,
+        'grad': total_grad / n,
+        'depth': total_depth / n,
         'psnr': total_psnr / n
     }
 
@@ -146,7 +178,8 @@ def main(args):
     #
     # m = m.to(device)
 
-    criterion = nn.L1Loss()
+    # criterion = nn.L1Loss()
+    criterion = TotalLoss().to(device)
 
     info = ''
     h = History('CycleGAN', './history_save', args.learning_rate, args.epoch, args.batch_size, info=info)
@@ -182,11 +215,17 @@ def main(args):
         elapsed = time.time() - start_time_epoch
 
         print(
-            f'Epoch [{epoch:03d}/200] | '
-            f'Time: {elapsed:.2f}s | '
-            f'Train Loss: {train_log["loss"]:.6f} | '
-            f'Test Loss: {test_log["loss"]:.6f} | '
-            f'PSNR: {test_log["psnr"]:.4f} dB'
+            f'Epoch [{epoch:03d}/200] | Time: {elapsed:.2f}s\n'
+            f'Train Loss : {train_log["loss"]:.6f}\n'
+            f'  L1        : {train_log["l1"]:.6f}\n'
+            f'  Grad      : {train_log["grad"]:.6f}\n'
+            f'  Depth     : {train_log["depth"]:.6f}\n'
+            f'PSNR        : {train_log["psnr"]:.4f} dB\n'
+            f'Test Loss  : {test_log["loss"]:.6f}\n'
+            f'  L1        : {test_log["l1"]:.6f}\n'
+            f'  Grad      : {test_log["grad"]:.6f}\n'
+            f'  Depth     : {test_log["depth"]:.6f}\n'
+            f'PSNR        : {test_log["psnr"]:.4f} dB'
         )
 
         if test_log['psnr'] > best_psnr:
