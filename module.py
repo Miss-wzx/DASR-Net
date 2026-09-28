@@ -91,7 +91,7 @@ class CrossDepthAttention(nn.Module):
         self.fusion = nn.Sequential(
 
             nn.Conv2d(
-                channels * 2,
+                channels,
                 channels,
                 kernel_size=3,
                 padding=1
@@ -121,9 +121,9 @@ class CrossDepthAttention(nn.Module):
 
             q = self.query(current)
 
-            depth_context = 0
+            depth_context = current
 
-            count = 0
+            count = 1
 
             # ====================================================
             # Previous slice interaction
@@ -162,13 +162,7 @@ class CrossDepthAttention(nn.Module):
             if count > 0:
                 depth_context = depth_context / count
 
-            fused = self.fusion(
-
-                torch.cat(
-                    [current, depth_context],
-                    dim=1
-                )
-            )
+            fused = self.fusion(depth_context)
 
             outputs.append(fused)
 
