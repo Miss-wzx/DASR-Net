@@ -228,7 +228,7 @@ def main(args):
         if test_log['psnr'] > best_psnr:
             best_psnr = test_log['psnr']
 
-            torch.save(m.module.cpu().state_dict(), './model_save/DASR-Net_best.pth'.format(info))
+            torch.save(m.module.cpu().state_dict(), './model_save/DASR-Net_best{}{}.pth'.format(epoch ,info))
 
             print(
                 f'Best model saved. '
@@ -236,7 +236,7 @@ def main(args):
             )
 
         # 保存网络模型 多板卡 使用 m.module
-        torch.save(m.module.cpu().state_dict(), './model_save/DASR-Net_last.pth'.format(info))
+        torch.save(m.module.cpu().state_dict(), './model_save/DASR-Net_last{}{}.pth'.format(epoch ,info))
         m = m.to(device)
 
         h.train_loss.append(train_log)
@@ -245,7 +245,7 @@ def main(args):
 
 
     # 保存网络模型
-    torch.save(m.module.cpu().state_dict(), './model_save/DASR-Net_last.pth'.format(info))
+    torch.save(m.module.cpu().state_dict(), './model_save/DASR-Net_last{}{}.pth'.format('end' ,info))
 
     # 记录程序结束时间
     end_time = time.time()

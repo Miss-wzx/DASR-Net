@@ -81,5 +81,5 @@ if __name__ == '__main__':
         for i, (scan_data_A, scan_data_B) in enumerate(zip(dx, dy)):
             for j, (sda, sdb) in enumerate(zip(scan_data_A, scan_data_B)):
                 print(sda.max(), sda.min(), sdb.max(), sdb.min())
-                save_img(sda, f'./原始数据/75MHz - 30dB - crop/{i}_{j}_50μm.png')
-                save_img(sdb, f'./原始数据/75MHz - 30dB - crop/{i}_{j}_20μm.png')
+                save_img(sda, f'./原始数据/crop/{i}_{j}_50μm.png')
+                save_img(sdb, f'./原始数据/crop/{i}_{j}_20μm.png')
